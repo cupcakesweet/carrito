@@ -214,7 +214,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#2e7d32',
   },
   quantityButtonText: {
-    fontSize: 18,
+    fontSize: 30,
+    marginBottom: 8,
     fontWeight: 'bold',
   },
   increaseButtonText: {

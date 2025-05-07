@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
-const SurveyCreator = () => {
+const Encuesta = () => {
+  const [activeTab, setActiveTab] = useState('create');
   const [surveyName, setSurveyName] = useState('');
+  const [submittedSurvey, setSubmittedSurvey] = useState(null);
   const [questions, setQuestions] = useState([
     {
       id: 1,
@@ -18,7 +20,7 @@ const SurveyCreator = () => {
     setSurveyName('');
     setQuestions([
       {
-        id: 1,  // Siempre comenzar con ID 1
+        id: 1,
         text: '',
         type: 'optional',
         options: ['', '', ''],
@@ -108,7 +110,6 @@ const SurveyCreator = () => {
   };
 
   const submitSurvey = () => {
-    // Validaciones
     if (!surveyName.trim()) {
       Alert.alert('Error', 'Por favor ingresa un nombre para la encuesta');
       return;
@@ -130,188 +131,303 @@ const SurveyCreator = () => {
       }
     }
 
-    // Aquí iría la lógica para enviar la encuesta al servidor
+    const surveyData = {
+      surveyName,
+      questions,
+      date: new Date().toLocaleDateString(),
+      responseCount: 0,
+      hasCorrectAnswers: questions.some(q => q.correctOption !== null),
+    };
+
+    setSubmittedSurvey(surveyData);
+    
     Alert.alert('Éxito', 'Encuesta creada correctamente', [
       {
         text: 'OK',
-        onPress: () => resetForm(),
+        onPress: () => {
+          resetForm();
+          setActiveTab('review');
+        },
       },
     ]);
-    
-    console.log({
-      surveyName,
-      questions,
-    });
+  };
+
+  const SurveyResponse = ({ survey }) => {
+    if (!survey) {
+      return (
+        <View style={styles.noSurveyContainer}>
+          <Text style={styles.noSurveyText}>No hay encuestas para mostrar</Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView style={styles.container}>
+        <Text style={styles.header}>CULTIVA MARKET</Text>
+        <Text style={styles.subHeader}>Encuestas</Text>
+        
+        <View style={styles.surveyInfoContainer}>
+          <Text style={styles.surveyTitle}>{survey.surveyName}</Text>
+          <Text style={styles.surveyDetail}>Fecha: {survey.date}</Text>
+          <Text style={styles.surveyDetail}>Respuestas: {survey.responseCount}</Text>
+          <Text style={styles.surveyDetail}>
+            Tipo: {survey.hasCorrectAnswers ? 'Con respuestas correctas' : 'Sin respuestas correctas'}
+          </Text>
+        </View>
+
+        {survey.questions.map((question, qIndex) => (
+          <View key={qIndex} style={styles.questionResponseContainer}>
+            <Text style={styles.questionResponseText}>
+              {qIndex + 1}. {question.text}
+            </Text>
+            <Text style={styles.questionTypeText}>
+              Tipo: {question.type === 'optional' ? 'Opcional' : 
+                    question.type === 'multiple' ? 'Múltiple' : 'Abierta'}
+            </Text>
+            
+            {question.type === 'optional' && (
+              <View style={styles.optionsContainer}>
+                {question.options.map((option, index) => (
+                  <View 
+                    key={index} 
+                    style={[
+                      styles.optionItem,
+                      question.correctOption === index && styles.correctOption
+                    ]}
+                  >
+                    <Text>{option}</Text>
+                    {question.correctOption === index && (
+                      <Text style={styles.correctBadge}>✓ Correcta</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    );
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>CULTIVA MARKET</Text>
-      <Text style={styles.subHeader}>Encuestas</Text>
-      <Text style={styles.sectionHeader}>Crear encuestas</Text>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Nombre</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre de la encuesta..."
-          value={surveyName}
-          onChangeText={setSurveyName}
-        />
+    <View style={styles.appContainer}>
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'create' && styles.activeTab]}
+          onPress={() => setActiveTab('create')}
+        >
+          <Text style={[styles.tabText, activeTab === 'create' && styles.activeTabText]}>
+            Crear encuesta
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'review' && styles.activeTab]}
+          onPress={() => setActiveTab('review')}
+        >
+          <Text style={[styles.tabText, activeTab === 'review' && styles.activeTabText]}>
+            Revisar encuestas
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {questions.map((question, qIndex) => (
-        <View key={question.id} style={styles.questionContainer}>
-          <View style={styles.questionHeader}>
-            <Text style={styles.questionTitle}>Pregunta #{qIndex + 1}</Text>
-            {questions.length > 1 && (
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeQuestion(question.id)}
-              >
-                <Text style={styles.removeButtonText}>×</Text>
-              </TouchableOpacity>
-            )}
+      {activeTab === 'create' ? (
+        <ScrollView style={styles.container}>
+          <Text style={styles.header}>CULTIVA MARKET</Text>
+          <Text style={styles.subHeader}>Encuestas</Text>
+          <Text style={styles.sectionHeader}>Crear encuestas</Text>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Nombre</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nombre de la encuesta..."
+              value={surveyName}
+              onChangeText={setSurveyName}
+            />
           </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Pregunta..."
-            value={question.text}
-            onChangeText={text => updateQuestionText(question.id, text)}
-          />
-
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={question.type}
-              onValueChange={type => updateQuestionType(question.id, type)}
-              style={styles.picker}
-            >
-              <Picker.Item label="Opcional (selección única)" value="optional" />
-              <Picker.Item label="Abierta (texto libre)" value="open" />
-              <Picker.Item label="Múltiples (varias opciones)" value="multiple" />
-            </Picker>
-          </View>
-
-          {question.type === 'optional' && (
-            <>
-              <Text style={styles.optionsLabel}>Opciones:</Text>
-              {question.options.map((option, index) => (
-                <View key={index} style={styles.optionRow}>
-                  <TextInput
-                    style={[styles.input, styles.optionInput]}
-                    placeholder={`Opción ${index + 1}`}
-                    value={option}
-                    onChangeText={text => updateOptionText(question.id, index, text)}
-                  />
+          {questions.map((question, qIndex) => (
+            <View key={question.id} style={styles.questionContainer}>
+              <View style={styles.questionHeader}>
+                <Text style={styles.questionTitle}>Pregunta #{qIndex + 1}</Text>
+                {questions.length > 1 && (
                   <TouchableOpacity
-                    style={[
-                      styles.radioButton,
-                      question.correctOption === index && styles.radioButtonSelected,
-                    ]}
-                    onPress={() => setCorrectOption(question.id, index)}
+                    style={styles.removeButton}
+                    onPress={() => removeQuestion(question.id)}
                   >
-                    {question.correctOption === index && (
-                      <Text style={styles.radioButtonSelectedText}>✓</Text>
-                    )}
+                    <Text style={styles.removeButtonText}>×</Text>
                   </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity
-                style={styles.addOptionButton}
-                onPress={() => addOption(question.id)}
-              >
-                <Text style={styles.addOptionButtonText}>+ Añadir opción</Text>
-              </TouchableOpacity>
+                )}
+              </View>
 
-              {question.correctOption !== null && (
-                <TouchableOpacity
-                  style={styles.clearCorrectButton}
-                  onPress={() => setCorrectOption(question.id, null)}
+              <TextInput
+                style={styles.input}
+                placeholder="Pregunta..."
+                value={question.text}
+                onChangeText={text => updateQuestionText(question.id, text)}
+              />
+
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={question.type}
+                  onValueChange={type => updateQuestionType(question.id, type)}
+                  style={styles.picker}
                 >
-                  <Text style={styles.clearCorrectButtonText}>Quitar respuesta correcta</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
+                  <Picker.Item label="Opcional (selección única)" value="optional" />
+                  <Picker.Item label="Abierta (texto libre)" value="open" />
+                  <Picker.Item label="Múltiples (varias opciones)" value="multiple" />
+                </Picker>
+              </View>
 
-          {question.type === 'multiple' && (
-            <>
-              <Text style={styles.optionsLabel}>Opciones:</Text>
-              {question.options.map((option, index) => (
-                <View key={index} style={styles.optionRow}>
+              {question.type === 'optional' && (
+                <>
+                  <Text style={styles.optionsLabel}>Opciones:</Text>
+                  {question.options.map((option, index) => (
+                    <View key={index} style={styles.optionRow}>
+                      <TextInput
+                        style={[styles.input, styles.optionInput]}
+                        placeholder={`Opción ${index + 1}`}
+                        value={option}
+                        onChangeText={text => updateOptionText(question.id, index, text)}
+                      />
+                      <TouchableOpacity
+                        style={[
+                          styles.radioButton,
+                          question.correctOption === index && styles.radioButtonSelected,
+                        ]}
+                        onPress={() => setCorrectOption(question.id, index)}
+                      >
+                        {question.correctOption === index && (
+                          <Text style={styles.radioButtonSelectedText}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity
+                    style={styles.addOptionButton}
+                    onPress={() => addOption(question.id)}
+                  >
+                    <Text style={styles.addOptionButtonText}>+ Añadir opción</Text>
+                  </TouchableOpacity>
+
+                  {question.correctOption !== null && (
+                    <TouchableOpacity
+                      style={styles.clearCorrectButton}
+                      onPress={() => setCorrectOption(question.id, null)}
+                    >
+                      <Text style={styles.clearCorrectButtonText}>Quitar respuesta correcta</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+
+              {question.type === 'multiple' && (
+                <>
+                  <Text style={styles.optionsLabel}>Opciones:</Text>
+                  {question.options.map((option, index) => (
+                    <View key={index} style={styles.optionRow}>
+                      <TextInput
+                        style={[styles.input, styles.optionInput]}
+                        placeholder={`Opción ${index + 1}`}
+                        value={option}
+                        onChangeText={text => updateOptionText(question.id, index, text)}
+                      />
+                    </View>
+                  ))}
+                  <TouchableOpacity
+                    style={styles.addOptionButton}
+                    onPress={() => addOption(question.id)}
+                  >
+                    <Text style={styles.addOptionButtonText}>+ Añadir opción</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {question.type === 'open' && (
+                <View style={styles.openQuestionContainer}>
+                  <Text style={styles.openQuestionLabel}>Abierta (texto libre)</Text>
                   <TextInput
-                    style={[styles.input, styles.optionInput]}
-                    placeholder={`Opción ${index + 1}`}
-                    value={option}
-                    onChangeText={text => updateOptionText(question.id, index, text)}
+                    style={[styles.input, styles.openInput]}
+                    placeholder="El usuario podrá escribir una respuesta extensa aquí..."
+                    multiline
+                    editable={false}
                   />
                 </View>
-              ))}
-              <TouchableOpacity
-                style={styles.addOptionButton}
-                onPress={() => addOption(question.id)}
-              >
-                <Text style={styles.addOptionButtonText}>+ Añadir opción</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {question.type === 'open' && (
-            <View style={styles.openQuestionContainer}>
-              <Text style={styles.openQuestionLabel}>Abierta (texto libre)</Text>
-              <TextInput
-                style={[styles.input, styles.openInput]}
-                placeholder="El usuario podrá escribir una respuesta extensa aquí..."
-                multiline
-                editable={false}
-              />
+              )}
             </View>
-          )}
-        </View>
-      ))}
+          ))}
 
-      <TouchableOpacity style={styles.addQuestionButton} onPress={addQuestion}>
-        <Text style={styles.addQuestionButtonText}>+ Añadir pregunta</Text>
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.addQuestionButton} onPress={addQuestion}>
+            <Text style={styles.addQuestionButtonText}>+ Añadir pregunta</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity style={styles.submitButton} onPress={submitSurvey}>
-        <Text style={styles.submitButtonText}>Enviar encuesta</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <TouchableOpacity style={styles.submitButton} onPress={submitSurvey}>
+            <Text style={styles.submitButtonText}>Enviar encuesta</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      ) : (
+        <SurveyResponse survey={submittedSurvey} />
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#f5f5f5',
-      },
-      header: {
-        fontSize: 28, // Más grande
-        fontWeight: 'bold',
-        color: 'black', // Negro
-        marginBottom: 10,
-        textAlign: 'center',
-      },
-      subHeader: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: 'white', // Blanco
-        marginBottom: 15,
-        textAlign: 'center',
-        backgroundColor: '#27ae60', // Fondo verde
-        paddingVertical: 8,
-        borderBottomWidth: 3, // Línea verde más gruesa
-        borderBottomColor: '#2ecc71', // Color de la línea
-      },
-      sectionHeader: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'black', // Negro
-        marginBottom: 20,
-      },
+  appContainer: {
+    flex: 1,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#f5f5f5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  tabButton: {
+    flex: 1,
+    padding: 15,
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  activeTab: {
+    backgroundColor: '#387C2B',
+  },
+  tabText: {
+    color: '#7f8c8d',
+    fontWeight: 'bold',
+  },
+  activeTabText: {
+    color: 'white',
+  },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'black',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subHeader: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 15,
+    textAlign: 'center',
+    backgroundColor: '#27ae60',
+    paddingVertical: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: '#2ecc71',
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'black',
+    marginBottom: 20,
+  },
   inputContainer: {
     marginBottom: 25,
   },
@@ -359,7 +475,8 @@ const styles = StyleSheet.create({
   },
   removeButtonText: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 35,
+    marginBottom: 8,
     fontWeight: 'bold',
     lineHeight: 22,
   },
@@ -469,6 +586,75 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
+  // Estilos para la vista de respuestas
+  noSurveyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noSurveyText: {
+    fontSize: 18,
+    color: '#95a5a6',
+  },
+  surveyInfoContainer: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderLeftWidth: 5,
+    borderLeftColor: '#27ae60',
+  },
+  surveyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 5,
+  },
+  surveyDetail: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 3,
+  },
+  questionResponseContainer: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  questionResponseText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 10,
+  },
+  questionTypeText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    fontStyle: 'italic',
+    marginBottom: 10,
+  },
+  optionsContainer: {
+    marginTop: 5,
+  },
+  optionItem: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    marginBottom: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  correctOption: {
+    borderColor: '#27ae60',
+    backgroundColor: '#e8f5e9',
+  },
+  correctBadge: {
+    fontSize: 12,
+    color: '#27ae60',
+    fontWeight: 'bold',
+    marginTop: 5,
+  },
 });
 
-export default SurveyCreator;
+export default Encuesta;
