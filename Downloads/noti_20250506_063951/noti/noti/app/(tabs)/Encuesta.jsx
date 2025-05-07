@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 10,
     marginBottom: 5,
-    color: '#7f8c8d',
+    color: '#fff',
   },
   optionRow: {
     flexDirection: 'row',
@@ -512,12 +512,12 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#3498db',
+    borderColor: '#387C2B',
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioButtonSelected: {
-    backgroundColor: '#3498db',
+    backgroundColor: '#7CBE6B',
   },
   radioButtonSelectedText: {
     color: 'white',
